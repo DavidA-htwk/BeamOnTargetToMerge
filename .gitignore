@@ -1,0 +1,45 @@
+venv/
+__pycache__/
+geometry_cache*/
+*.pyc
+OUTPUT/
+OUTPUT_BENCH/
+OUTPUT_CHECKPOINT1M/
+OUTPUT_SPECIES_TEST/
+OUTPUT_SPECIES_TEST2/
+OUTPUT_SWEEP/
+DUMMY/
+.pv_temp_script.py
+build/
+dist/
+*.egg-info/
+logs/
+profile_*.log
+prof_output_*.txt
+DDBELLOW_STUDY/OUTPUT*/
+3D_MODELS/
+InputFiles/
+*.bl
+# shipped worked examples, required for the two example configs to run
+!BEAM_CONFIG_EXAMPLE/example_*.bl
+!BEAM_CONFIG_BEAMLINE/example_*.bl
+*.xlsx
+*.fld
+*.dens
+*.png
+# application splash image, required at runtime
+!BOT_logo.png
+*.vtp
+OUTPUT*/
+# --- Generated meshing / datum-point output ---
+DatumPoints/
+*.step
+*.stp
+*.msh
+
+# --- Local, machine-specific overrides ---
+# config.json ships a portable default; keep personal copies out of the repo.
+config.local.json
+config_*.json
+# shipped example config, must be committed
+!config_beamline_example.json

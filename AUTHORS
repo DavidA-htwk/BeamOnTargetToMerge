@@ -1,0 +1,36 @@
+BeamOnTarget — authors and contributors
+=======================================
+
+Copyright (c) 2025-2026 ITER Organization
+Route de Vinon-sur-Verdon, CS 90 046, 13067 St Paul Lez Durance Cedex, France
+
+BeamOnTarget was developed at the ITER Organization. Copyright in the work is
+held by the ITER Organization; the people below are credited as its authors and
+contributors.
+
+
+Author
+------
+
+Carlo Poggi <carlo.poggi@iter.org>
+    ITER Organization
+    Original design and implementation: simulation engine, geometry handling,
+    particle sources, EM tracking, interaction physics, output and reporting,
+    graphical user interface.
+
+
+Contributors
+------------
+
+David Atteln
+    HTWK Leipzig (student placement at the ITER Organization, 2026)
+    Beamlet jitter in the EM tracker, face-normal checking in the result
+    smoother, smoothing parameters exposed through the configuration file and
+    GUI, post-smoothing workflow.
+
+
+Adding yourself
+---------------
+
+Contributions are welcome — see CONTRIBUTING.md. Please add yourself to the
+Contributors section in the same change that introduces your contribution.

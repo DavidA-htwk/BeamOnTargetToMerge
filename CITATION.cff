@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata from this file."
+title: BeamOnTarget
+abstract: >-
+  A Python application for simulating the interaction of particle beams with
+  complex 3D geometries. It tracks charged and neutral beam particles through
+  user-supplied electromagnetic field maps and beam-gas interaction channels,
+  and computes the power and power density deposited on the surfaces of
+  triangulated meshes.
+type: software
+version: 1.0.0
+date-released: 2026-09-18
+license: LGPL-3.0-only
+
+authors:
+  - family-names: Poggi
+    given-names: Carlo
+    email: carlo.poggi@iter.org
+    affiliation: ITER Organization
+
+# Copyright in this work is held by the ITER Organization. See AUTHORS for the
+# full list of authors and contributors.
+
+keywords:
+  - neutral beam injection
+  - particle tracking
+  - power deposition
+  - plasma physics
+  - fusion
+
+# TODO: replace with the final published URL before the repository goes public.
+repository-code: "https://github.com/iterorganization/BeamOnTarget"

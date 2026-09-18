@@ -1,0 +1,90 @@
+{
+    "NUM_CPU_CORES": 1,
+    "ENABLE_DIAGNOSTIC_SURFACES": false,
+    "GEOMETRY_CACHE_DIR": "geometry_cache_beamline",
+    "GEOMETRY_FOLDERS": {
+        "NEU": {
+            "scale": 1.0,
+            "target_length": 1.0,
+            "save_details": true,
+            "is_diagnostic": false,
+            "save_impact_data": false,
+            "show_in_plot": true,
+            "max_impact_records": null
+        },
+        "RID": {
+            "scale": 1.0,
+            "target_length": 1.0,
+            "save_details": true,
+            "is_diagnostic": false,
+            "save_impact_data": false,
+            "show_in_plot": true,
+            "max_impact_records": null
+        },
+        "CAL": {
+            "scale": 1.0,
+            "target_length": 1.0,
+            "save_details": true,
+            "is_diagnostic": false,
+            "save_impact_data": false,
+            "show_in_plot": true,
+            "max_impact_records": null
+        }
+    },
+    "PARTICLE_SOURCE_DIR": "BEAM_CONFIG_BEAMLINE",
+    "NUM_PARTICLES_PER_BEAMLET": 1001,
+    "BEAMLET_RADIUS_M": 0.007,
+    "PARTICLE_BATCH_SIZE": 2500000,
+    "TRACKING_MODE": "ray",
+    "EM_STEP_LENGTH_M": 0.02,
+    "EM_MAX_STEPS": 500,
+    "EM_MAX_DISTANCE_M": null,
+    "EM_MIN_ENERGY_EV": null,
+    "EM_BOUNDING_BOX_MIN_CORNER_M": [
+        0.0,
+        -0.5,
+        -1.3
+    ],
+    "EM_BOUNDING_BOX_MAX_CORNER_M": [
+        15.0,
+        0.5,
+        0.8
+    ],
+    "EM_BVH_CHECKPOINT_DISTANCE_M": 1.0,
+    "V_RID_V": 20000.0,
+    "DENSITY_DIRECTION": [
+        1.0,
+        0.0,
+        0.0
+    ],
+    "EXTERNAL_FIELD": {
+        "type": "composite",
+        "components": {
+            "Ey": {
+                "mode": "rid_ey",
+                "v_rid_v": 20000.0,
+                "x_min_m": 5.4,
+                "x_max_m": 7.2
+            }
+        }
+    },
+    "REACTION_MODEL": {
+        "type": "none"
+    },
+    "DEPOSITION_FRACTION": 1.0,
+    "SAVE_PARAVIEW_FILES": true,
+    "DETAILED_OUTPUT_DIR": "OUTPUT",
+    "ENABLE_VISUALIZATION": true,
+    "SAVE_BINARY_POWERLOADS": false,
+    "SAVE_CSV_REPORTS": false,
+    "RUN_VISUALIZATION_AFTER_SIM": false,
+    "VISUALIZE_ALL_RAYS": false,
+    "SUMMARY_CSV_FILENAME": "power_summary_by_object.csv",
+    "NUM_RAYS_TO_SHOW_IN_PLOT": 0,
+    "RUN_SMOOTHER_AFTER_SIM": false,
+    "SMOOTHING_RADIUS": 0.02,
+    "SMOOTHING_MAX_CELL_AREA": 4e-06,
+    "SMOOTHING_NORMAL_THRESHOLD_DEG": 6.0,
+    "PARAVIEW_PATH": "paraview",
+    "PARAVIEW_MODULE": "ParaView"
+}

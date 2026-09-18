@@ -1,0 +1,240 @@
+# SPDX-FileCopyrightText: 2025-2026 ITER Organization
+# SPDX-License-Identifier: LGPL-3.0-only
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      # Test the two ends of the range declared by requires-python in
+      # pyproject.toml. The middle version is the one least likely to break;
+      # binary wheels for the compiled dependencies go missing at the edges.
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install system dependencies
+        # build-essential: pyembree / embreex are compiled from source.
+        # libgl1 + libegl1: open3d links against OpenGL even when only imported.
+        # python3-tk: Tk runtime libraries for the GUI modules.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            python3-tk \
+            libgl1 \
+            libegl1 \
+            libxrender1 \
+            libxi6 \
+            libsm6
+
+      - name: Install BeamOnTarget
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Show resolved environment
+        # Printed unconditionally: when a later step fails, this is the first
+        # thing worth looking at.
+        if: always()
+        run: pip list
+
+      - name: Import core modules
+        # beamontarget/__init__.py is intentionally empty, so "import
+        # beamontarget" proves nothing. Import every non-GUI module instead.
+        run: |
+          python - <<'PY'
+          import importlib, pkgutil, sys
+          import beamontarget
+
+          failed = []
+          for mod in pkgutil.walk_packages(beamontarget.__path__, "beamontarget."):
+              if ".gui" in mod.name:
+                  continue
+              try:
+                  importlib.import_module(mod.name)
+                  print(f"ok    {mod.name}")
+              except Exception as exc:
+                  print(f"FAIL  {mod.name}: {exc.__class__.__name__}: {exc}")
+                  failed.append(mod.name)
+
+          if failed:
+              sys.exit(f"\n{len(failed)} module(s) failed to import: {', '.join(failed)}")
+          PY
+
+      - name: Import GUI modules
+        # Separated from the step above so that a Tk problem is immediately
+        # distinguishable from a problem in the simulation code. No module
+        # creates a Tk() at import time, so this works without a display.
+        run: |
+          python - <<'PY'
+          import importlib, pkgutil, sys
+          import beamontarget
+
+          try:
+              import tkinter  # noqa: F401
+          except Exception as exc:
+              sys.exit(f"tkinter unavailable in this interpreter: {exc}")
+
+          failed = []
+          for mod in pkgutil.walk_packages(beamontarget.__path__, "beamontarget."):
+              if ".gui" not in mod.name:
+                  continue
+              try:
+                  importlib.import_module(mod.name)
+                  print(f"ok    {mod.name}")
+              except Exception as exc:
+                  print(f"FAIL  {mod.name}: {exc.__class__.__name__}: {exc}")
+                  failed.append(mod.name)
+
+          if failed:
+              sys.exit(f"\n{len(failed)} GUI module(s) failed to import: {', '.join(failed)}")
+          PY
+
+      - name: Check console entry points are resolvable
+        run: |
+          python - <<'PY'
+          from importlib.metadata import entry_points
+          eps = [e for e in entry_points(group="console_scripts")
+                 if e.module.startswith("beamontarget")]
+          assert eps, "no beamontarget console_scripts found in installed metadata"
+          for e in eps:
+              e.load()
+              print(f"ok    {e.name} -> {e.value}")
+          PY
+
+      - name: Validate shipped configs
+        run: |
+          python - <<'PY'
+          import json, os
+          import pandas as pd
+
+          CONFIGS = ["config.json", "config_beamline_example.json"]
+          REQUIRED_BL = {
+              "CenterX", "CenterY", "CenterZ", "DirX", "DirY", "DirZ",
+              "Mass_kg", "Charge_e", "HaloFraction", "CurrentDensity_A_m2",
+              "SigmaY_m", "SigmaZ_m", "DeltaY_rad", "DeltaZ_rad",
+          }
+
+          for name in CONFIGS:
+              print(f"{name}:")
+              with open(name, encoding="utf-8") as fh:
+                  cfg = json.load(fh)
+
+              # The repository ships geometry for both configs so that a fresh
+              # checkout runs out of the box. Fail if any of it goes missing.
+              for folder in cfg["GEOMETRY_FOLDERS"]:
+                  assert os.path.isdir(folder), f"{name}: missing geometry folder {folder}"
+                  meshes = [f for f in os.listdir(folder) if f.lower().endswith(".stl")]
+                  assert meshes, f"{name}: {folder} ships no .stl"
+                  print(f"  {folder}: {len(meshes)} .stl file(s)")
+
+              # DUMMY/ is created at runtime in the CWD and is gitignored, so it
+              # must never appear in a shipped config.
+              assert "DUMMY" not in cfg["GEOMETRY_FOLDERS"], f"{name}: references DUMMY/"
+
+              # run_simulation.py runs one full simulation per .bl file, so a
+              # stray second file would silently double the example's runtime.
+              src = cfg["PARTICLE_SOURCE_DIR"]
+              assert os.path.isdir(src), f"{name}: missing {src}"
+              beams = [f for f in os.listdir(src) if f.endswith(".bl")]
+              assert len(beams) == 1, f"{name}: {src} holds {len(beams)} .bl files, expected 1"
+              print(f"  {src}: {beams[0]}")
+
+              # The beam file must carry every column particles.py indexes by name.
+              df = pd.read_csv(os.path.join(src, beams[0]), comment="#", sep=r"\s+")
+              required = set(REQUIRED_BL)
+              if (df["HaloFraction"] > 0).any():
+                  required |= {"DeltaHY_rad", "DeltaHZ_rad"}
+              missing = required - set(df.columns)
+              assert not missing, f"{name}: beam file missing columns {sorted(missing)}"
+              print(f"  {beams[0]}: {len(df)} beamlets, all required columns present")
+
+              assert cfg["TRACKING_MODE"] in ("ray", "em_track_then_bvh"),                   f"{name}: invalid TRACKING_MODE {cfg['TRACKING_MODE']!r}"
+
+              # config.py:148 calls .get() on EXTERNAL_FIELD unconditionally, so an
+              # explicit null raises AttributeError at import. Omit it instead.
+              assert cfg.get("EXTERNAL_FIELD", {}) is not None,                   f"{name}: EXTERNAL_FIELD must be omitted, never null"
+
+              # The published defaults must stay portable.
+              assert not os.path.isabs(cfg["PARAVIEW_PATH"]),                   f"{name}: PARAVIEW_PATH must not be absolute: {cfg['PARAVIEW_PATH']!r}"
+              assert "PROJECT_FOLDER" not in cfg,                   f"{name}: PROJECT_FOLDER is machine-specific and must not be committed"
+
+          # The two examples must not collide in the geometry cache or in OUTPUT/.
+          loaded = [json.load(open(n, encoding="utf-8")) for n in CONFIGS]
+          assert len({c["GEOMETRY_CACHE_DIR"] for c in loaded}) == len(CONFIGS),               "the shipped configs share a GEOMETRY_CACHE_DIR"
+          assert len({c["PARTICLE_SOURCE_DIR"] for c in loaded}) == len(CONFIGS),               "the shipped configs share a PARTICLE_SOURCE_DIR"
+
+          # config.json is the default a newcomer runs first: keep it fast.
+          default = loaded[0]
+          src = default["PARTICLE_SOURCE_DIR"]
+          beam = [f for f in os.listdir(src) if f.endswith(".bl")][0]
+          n_beamlets = len(pd.read_csv(os.path.join(src, beam), comment="#", sep=r"\s+"))
+          rays = n_beamlets * default["NUM_PARTICLES_PER_BEAMLET"]
+          assert default["TRACKING_MODE"] == "ray", "config.json must stay in ray mode"
+          assert rays <= 1_000_000, f"config.json is no longer a fast example: {rays} rays"
+          print()
+          print(f"config.json default run: {n_beamlets} beamlets x "
+                f"{default['NUM_PARTICLES_PER_BEAMLET']} = {rays} rays")
+          print("both shipped configs are self-consistent and portable")
+          PY
+
+      - name: Run the shipped simple example
+        timeout-minutes: 10
+        run: |
+          beamontarget-run
+          python - <<'PY'
+          import os
+          import pandas as pd
+
+          out = os.path.join("OUTPUT", "example_simple")
+          # A run with no geometry is legitimate (free-space tracking) and exits
+          # cleanly, so a zero exit status does not prove the example did its job.
+          # Assert on the artifacts instead.
+          expected = [
+              "results_cube.vtp",
+              "results_sphere.vtp",
+              "summary_example_simple.csv",
+          ]
+          for name in expected:
+              path = os.path.join(out, name)
+              assert os.path.isfile(path), f"missing output: {path}"
+              assert os.path.getsize(path) > 0, f"empty output: {path}"
+
+          df = pd.read_csv(os.path.join(out, "summary_example_simple.csv"))
+          print(df.to_string(index=False))
+
+          objects = set(df["object_name"])
+          assert objects == {"cube.stl", "sphere.stl"}, f"unexpected objects: {objects}"
+
+          power = df["total_deposited_power_W"]
+          assert (power > 0).all(), "some object received no power at all"
+
+          # The beam carries exactly 50 kW; roughly a third of the beamlets pass
+          # between the two bodies, so expect appreciably less than that on target.
+          total = power.sum()
+          assert 30_000 < total < 45_000, f"deposited power out of range: {total} W"
+          print(f"total deposited {total:.1f} W of 50000 W incident")
+          PY
+
+      - name: Build distributions
+        run: |
+          pip install build twine
+          python -m build
+          twine check dist/*
