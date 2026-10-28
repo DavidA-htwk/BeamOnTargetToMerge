@@ -36,8 +36,6 @@ from beamontarget.gui.gui_widgets import (
     get_project_folder as _get_project_folder,
     to_relative_path as _to_relative_path,
     choose_font_family,
-    supports_symbol_fonts,
-    symbol_text,
 )
 from beamontarget.gui.gui_fields import FieldsTab
 from beamontarget.gui.gui_reactions import ReactionsTab
@@ -197,7 +195,6 @@ class SimGUI(tk.Tk):
         self._queued_config_paths = []
         self._stop_requested = False
         self._font_family = choose_font_family()
-        self._supports_symbol_fonts = supports_symbol_fonts(self._font_family)
 
         self.withdraw()
         self._set_app_icon()
@@ -215,12 +212,6 @@ class SimGUI(tk.Tk):
         self.deiconify()
         self.lift()
         self.after(250, self._close_startup_logo)
-
-    def _choose_font_family(self):
-        return choose_font_family()
-
-    def _symbol_label(self, symbol, fallback=""):
-        return symbol_text(symbol, fallback, self._font_family)
 
     def _set_app_icon(self):
         """Set the runtime app icon for title bar/taskbar on Windows."""
@@ -277,7 +268,7 @@ class SimGUI(tk.Tk):
         style.theme_use("clam")
 
         try:
-            for name in ("TkDefaultFont", "TkMenuFont", "TkHeadingFont", "TkTextFont", "TkFixedFont"):
+            for name in ("TkDefaultFont", "TkMenuFont", "TkHeadingFont", "TkTextFont"):
                 font = tkfont.nametofont(name)
                 if font:
                     font.configure(family=self._font_family)
@@ -510,7 +501,7 @@ class SimGUI(tk.Tk):
     # ------------------------------------------------------------------
     def _build_general_tab(self, nb):
         outer = ttk.Frame(nb)
-        nb.add(outer, text=f"  {self._symbol_label('⚙', '')} General  ")
+        nb.add(outer, text="  General  ")
 
         # --- Tracking Method card ---
         method_card = self._make_card(outer, "Tracking Method", pady=(12, 10))
@@ -690,7 +681,7 @@ class SimGUI(tk.Tk):
             view_geometry_fn=self._view_geometry,
             view_geometry_o3d_fn=self._view_geometry_o3d,
         )
-        nb.add(self._geometry_tab, text=f"  {self._symbol_label('📐', '')} Geometry  ")
+        nb.add(self._geometry_tab, text="  Geometry  ")
 
     # ------------------------------------------------------------------
     #  PARTICLES tab (delegated to gui_particles.py)
@@ -700,7 +691,7 @@ class SimGUI(tk.Tk):
             nb, self.cfg, self._colours,
             view_sources_o3d_fn=self._view_sources_o3d,
         )
-        nb.add(self._particles_tab, text=f"  {self._symbol_label('🔬', '')} Particles  ")
+        nb.add(self._particles_tab, text="  Particles  ")
 
     @property
     def var_src_dir(self):
@@ -712,7 +703,7 @@ class SimGUI(tk.Tk):
     def _build_fields_tab(self, nb):
         self._fields_tab = FieldsTab(nb, self.cfg,
                                      get_collect_fn=self._collect)
-        nb.add(self._fields_tab, text=f"  {self._symbol_label('🧲', '')} Fields  ")
+        nb.add(self._fields_tab, text="  Fields  ")
 
     # ------------------------------------------------------------------
     #  REACTIONS tab (delegated to gui_reactions.py)
@@ -725,7 +716,7 @@ class SimGUI(tk.Tk):
             get_em_step=lambda: self.var_em_step.get(),
             get_collect_fn=self._collect,
         )
-        nb.add(self._reactions_tab, text=f"  {self._symbol_label('➜', '')} Reactions  ")
+        nb.add(self._reactions_tab, text="  Reactions  ")
 
     # ------------------------------------------------------------------
     #  OUTPUT tab (delegated to gui_output.py)
@@ -735,7 +726,7 @@ class SimGUI(tk.Tk):
             nb, self.cfg, self._colours,
             open_extract_fn=self._open_extract_dialog,
         )
-        nb.add(self._output_tab, text=f"  {self._symbol_label('📁', '')} Output  ")
+        nb.add(self._output_tab, text="  Output  ")
 
     @property
     def var_outdir(self):
@@ -817,7 +808,7 @@ class SimGUI(tk.Tk):
             open_extract_fn=self._open_extract_dialog,
             view_results_o3d_fn=self._view_results_o3d,
         )
-        nb.add(self._results_tab, text=f"  {self._symbol_label('📊', '')} Results  ")
+        nb.add(self._results_tab, text="  Results  ")
 
 
     # ------------------------------------------------------------------
@@ -838,7 +829,7 @@ class SimGUI(tk.Tk):
                 self._output_tab.var_sm_angle.get(),
             ),
         )
-        nb.add(self._run_tab, text=f"  {self._symbol_label('▶', '')} Run  ")
+        nb.add(self._run_tab, text="  Run  ")
 
     # ------------------------------------------------------------------
     #  Shared helpers
@@ -855,7 +846,7 @@ class SimGUI(tk.Tk):
             self._set_active_config_path(path)
             self._sync_project_folder(default_to_active=True)
             self._refresh_all_from_cfg()
-            self._log(f"✔ Configuration loaded from {os.path.basename(path)}\n")
+            self._log(f"Configuration loaded from {os.path.basename(path)}\n")
             self._set_status(f"Loaded config: {os.path.basename(path)}")
         except Exception as e:
             messagebox.showerror("Load Error", str(e))
@@ -909,7 +900,7 @@ class SimGUI(tk.Tk):
             self._sync_project_folder(default_to_active=True)
             self._sync_cfg_to_tabs()
             save_config(self.cfg, self._active_config_path)
-            self._log(f"✔ Configuration saved to {os.path.basename(self._active_config_path)}\n")
+            self._log(f"Configuration saved to {os.path.basename(self._active_config_path)}\n")
             self._set_status("Configuration saved")
         except Exception as e:
             messagebox.showerror("Save Error", str(e))
@@ -932,7 +923,7 @@ class SimGUI(tk.Tk):
             save_config(self.cfg, path)
             self._set_active_config_path(path)
             self._sync_project_folder(default_to_active=True)
-            self._log(f"✔ Configuration saved to {os.path.basename(path)}\n")
+            self._log(f"Configuration saved to {os.path.basename(path)}\n")
         except Exception as e:
             messagebox.showerror("Save Error", str(e))
 
@@ -1088,7 +1079,7 @@ class _ExtractDialog(tk.Toplevel):
         btn_frm = ttk.Frame(self)
         btn_frm.grid(row=9, column=0, columnspan=3, pady=12)
 
-        ttk.Button(btn_frm, text=f"{parent._symbol_label('💾', '')} Save CSV",
+        ttk.Button(btn_frm, text="Save CSV",
                     command=self._do_extract).pack(side="left", padx=4)
         ttk.Button(btn_frm, text="Cancel",
                     command=self.destroy).pack(side="left", padx=4)
@@ -1232,7 +1223,7 @@ class _ExtractDialog(tk.Toplevel):
                 df.to_csv(output_csv, index=False, float_format="%.6e")
 
                 self.after(0, lambda: self.var_status.set(
-                    f"✔ Saved {n_rows} rows to {os.path.basename(output_csv)}"))
+                    f"Saved {n_rows} rows to {os.path.basename(output_csv)}"))
                 self.after(0, lambda: messagebox.showinfo(
                     "Done",
                     f"Extracted {n_rows} rows to:\n{output_csv}",
