@@ -835,6 +835,7 @@ class SimGUI(tk.Tk):
             get_smoothing_params=lambda: (
                 self._output_tab.var_sm_radius.get(),
                 self._output_tab.var_sm_mca.get().strip(),
+                self._output_tab.var_sm_angle.get(),
             ),
         )
         nb.add(self._run_tab, text=f"  {self._symbol_label('▶', '')} Run  ")
