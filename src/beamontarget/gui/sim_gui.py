@@ -680,8 +680,21 @@ class SimGUI(tk.Tk):
             nb, self.cfg, self._colours,
             view_geometry_fn=self._view_geometry,
             view_geometry_o3d_fn=self._view_geometry_o3d,
+            get_em_bbox=self._get_em_bbox,
+            is_em_mode=lambda: self.var_tracking_mode.get() == "EM Tracing",
         )
         nb.add(self._geometry_tab, text="  Geometry  ")
+        for var in (self.var_bbox_min, self.var_bbox_max, self.var_tracking_mode):
+            var.trace_add("write",
+                          lambda *_: self._geometry_tab.schedule_bbox_redraw())
+
+    def _get_em_bbox(self):
+        """Return the EM bounding box corners, or None if the entries are invalid."""
+        try:
+            return (parse_vec3(self.var_bbox_min.get()),
+                    parse_vec3(self.var_bbox_max.get()))
+        except ValueError:
+            return None
 
     # ------------------------------------------------------------------
     #  PARTICLES tab (delegated to gui_particles.py)
